@@ -15,7 +15,6 @@ public class Relation {
     public Map<Key, relationType> family_relationMap = new HashMap<>();
     public Map<Key, relationType> teacher_student_relationMap = new HashMap<>();
     public Map<Key, relationType> classmates_relation = new HashMap<>();
-    public Stack<Character> relationRecorder = new Stack<>();
     //    public Map<String, HashMap<String,Integer>> father_son_relationMap = new HashMap<>();
     //    private HashMap<String,Integer> tmpMap = new HashMap<>();
     public enum relationType{
@@ -74,7 +73,6 @@ public class Relation {
             }
             // tell the relation between p[0] and p[1] in the situation that "xx的xx是xx的xx"
             if(keyword.size() == 3){
-                tellRelation tellRelation = new tellRelation();
                 char result = tellRelation.result(relation);
                 // no relation between two people
                 if(result == 'E') {
@@ -257,6 +255,8 @@ public class Relation {
                 }
 
                 type = searchSchoolRelation(people);
+                if(type == null)
+                    type = relationType.none;
                 switch (type) {
                     case teacher:
                         relationStatements.add(people[0] + "是" + people[1] + "的老师");
@@ -279,11 +279,10 @@ public class Relation {
 
     private relationType searchFamilyRelation(String[] people){
         relationType type;
+        char ch;
         type = family_relationMap.get(new Key(people[0], people[1]));
         if(type == null)
             type = searchFamilyRelationImplied(people);
-        if(type == null)
-            type = relationType.none;
         return type;
     }
 
@@ -292,66 +291,126 @@ public class Relation {
         type = teacher_student_relationMap.get(new Key(people[0], people[1]));
         if(type == null)
             type = searchSchoolRelationImplied(people);
-        if(type == null)
-            type = relationType.none;
-
         return type;
     }
 
     // implying relation in the family_map
     private relationType searchFamilyRelationImplied(String[] people) {
         relationType type;
-        // find if they are brothers
-        // have to use type = map.get(), because only type can recognize relationType
-        if(fathers.contains(people[0]) && fathers.contains(people[1]) ||
-                (sons.contains(people[0]) && sons.contains(people[1]))){
-            for (String father : fathers)
-                if ((type = family_relationMap.get(new Key(people[0], father))) ==
-                        (type = family_relationMap.get(new Key(people[1], father))) && type != null)
-                    return relationType.brother;
-            }
-        //if people[0] is the grandpa of people[1]
-        //father of p[0] is the son of p[1]
-        if(fathers.contains(people[0])&&sons.contains(people[1])){
-            for (String son : sons) {
-                if ((type = family_relationMap.get(new Key(people[0], son))) == relationType.father
-                        && (type = family_relationMap.get(new Key(son, people[1]))) == relationType.father)
-                    return relationType.grandpa;
-            }
-        }
-        //if people[0] is the grandson of people[1]
-        // son of p[0] is the father of p[1]
-        if(sons.contains(people[0])&&fathers.contains(people[1])){
-            for (String father : fathers) {
-                if ((type = family_relationMap.get(new Key(people[0], father))) == relationType.son
-                        && (type = family_relationMap.get(new Key(father, people[1]))) == relationType.son)
-                    return relationType.grandson;
-            }
-        }
-        //people[0] is the son of people[1]
-        //if brother of people[0] is the son of people[1]
-        if(sons.contains(people[0])&&fathers.contains(people[1])){
-            for (String brother : sons){
-                if((type = family_relationMap.get(new Key(people[0],brother))) == relationType.brother
-                        || type == relationType.elderBro || type == relationType.youngerBro) {
-                    type = family_relationMap.get(new Key(brother, people[1]));
-                    if(type == relationType.son)
-                        return relationType.son;
+        ArrayList<String> buffer = new ArrayList<>();
+        buffer.addAll(sons);
+        buffer.addAll(fathers);
+        char chRelation;
+        Stack<Character> relationRecorderStack = new Stack<>();
+        char[] relation = new char[2];
+        //find the relation transited via brothers
+        for(String P : buffer){
+            type = family_relationMap.get(new Key(P, people[0]));
+            if(type != null) {
+                relation[0] = RelationType_Into_char(type);
+                type = family_relationMap.get((new Key (P,people[1])));
+                if(type ==null){
+                    ArrayList<String> Bro = getBro(buffer, P);
+                    if(Bro != null) {
+                        boolean remove = buffer.remove(Bro);
+                        System.out.println(remove);
+                        for (String bro : Bro) {
+                            type = family_relationMap.get(new Key(bro, people[1]));
+                            if (type != null) {
+                                relation[1] = RelationType_Into_char(type);
+                                chRelation = tellRelation.result(relation);
+                                type = ch_To_relationType(chRelation);
+                                if(type != relationType.none)
+                                    return type;
+                            }
+                        }
+                    }
+                } else {
+                    relation[1] = RelationType_Into_char(type);
+                    chRelation = tellRelation.result(relation);
+                    type = ch_To_relationType(chRelation);
+                    if (type != relationType.none)
+                        return type;
                 }
             }
         }
-        //people[0] is the father of people[1]
-        //if son of people[0] is the brother of people[1]
-        if(sons.contains(people[1])&&fathers.contains(people[0])){
-            for (String son : sons){
-                if((type = family_relationMap.get(new Key(son, people[0]))) == relationType.son)
-                    if((type = family_relationMap.get(new Key(people[1],son))) == relationType.brother
-                            || type == relationType.elderBro || type == relationType.youngerBro)
-                        return relationType.father;
-            }
-        }
+//        // find if they are brothers
+//        // have to use type = map.get(), because only type can recognize relationType
+//        if(sons.contains(people[0]) && sons.contains(people[1])){
+//            for (String bro : sons)
+//                if ((type = family_relationMap.get(new Key(people[0], bro))) ==
+//                        (type = family_relationMap.get(new Key(people[1], bro))) && type != null)
+//                    return relationType.brother;
+//            }
+//        //if people[0] is the grandpa of people[1]
+//        //father of p[0] is the son of p[1]
+//        if(fathers.contains(people[0])&&sons.contains(people[1])){
+//            for (String son : sons) {
+//                if ((type = family_relationMap.get(new Key(people[0], son))) == relationType.father
+//                        && (type = family_relationMap.get(new Key(son, people[1]))) == relationType.father)
+//                    return relationType.grandpa;
+//            }
+//        }
+//        //if people[0] is the grandson of people[1]
+//        // son of p[0] is the father of p[1]
+//        if(sons.contains(people[0])&&fathers.contains(people[1])){
+//            for (String father : fathers) {
+//                if ((type = family_relationMap.get(new Key(people[0], father))) == relationType.son
+//                        && (type = family_relationMap.get(new Key(father, people[1]))) == relationType.son)
+//                    return relationType.grandson;
+//            }
+//        }
+//        //people[0] is the son of people[1]
+//        //if brother of people[0] is the son of people[1]
+//        if(sons.contains(people[0])&&fathers.contains(people[1])){
+//            for (String brother : sons){
+//                if((type = family_relationMap.get(new Key(people[0],brother))) == relationType.brother
+//                        || type == relationType.elderBro || type == relationType.youngerBro) {
+//                    type = family_relationMap.get(new Key(brother, people[1]));
+//                    if(type == relationType.son)
+//                        return relationType.son;
+//                }
+//            }
+//        }
+//        //people[0] is the father of people[1]
+//        //if son of people[0] is the brother of people[1]
+//        if(sons.contains(people[1])&&fathers.contains(people[0])){
+//            for (String son : sons){
+//                if((type = family_relationMap.get(new Key(son, people[0]))) == relationType.son)
+//                    if((type = family_relationMap.get(new Key(people[1],son))) == relationType.brother
+//                            || type == relationType.elderBro || type == relationType.youngerBro)
+//                        return relationType.father;
+//            }
+//        }
         return relationType.none;
     }
+
+    private relationType ch_To_relationType(char chRelation) {
+        switch (chRelation){
+            case '爸' : return relationType.father;
+            case '儿' : return relationType.son;
+            case '爷' : return relationType.grandpa;
+            case '孙' : return relationType.grandson;
+            case '兄' : return relationType.brother;
+            case '哥' : return relationType.elderBro;
+            case '弟' : return relationType.youngerBro;
+            default: return relationType.none;
+        }
+    }
+
+    private char RelationType_Into_char(relationType type) {
+        switch (type){
+            case father : return '爸';
+            case son : return '儿';
+            case grandpa : return '爷';
+            case grandson : return '孙';
+            case brother : return '兄';
+            case elderBro : return '哥';
+            case youngerBro : return '弟';
+            default: return 'E';
+        }
+    }
+
     // implying relation in the teachers_students_Map
     private relationType searchSchoolRelationImplied(String[] people) {
         relationType type;
@@ -363,6 +422,17 @@ public class Relation {
                     return relationType.classmates;
             }
         return null;
+    }
+
+    // find brothers of the target
+    private ArrayList<String> getBro(ArrayList<String> sons, String target){
+        ArrayList<String> Bro = new ArrayList<>();
+        relationType type;
+        for(String people : sons)
+            if((type = family_relationMap.get(new Key(target, people))) == relationType.brother
+                    || type == relationType.youngerBro || type == relationType.elderBro)
+                Bro.add(people);
+        return Bro;
     }
 
     public String[] tellStr(String str) {

@@ -2,8 +2,14 @@ package com.QG_relation.util;
 
 public class tellRelation {
     public char result(char[] relation){
-        if(relation[0] == '爸' && relation[1] == '爸')
+        if(relation[0] == '爸' && relation[1] == '爸'
+                || relation[0] == '哥' && relation[1] == '哥'
+                || relation[0] =='弟' &&relation[1] =='弟')
             return '兄';
+        if(relation[0] =='哥' && relation[1] == '弟')
+            return '弟';
+        if(relation[0] =='弟' && relation[1] == '哥')
+            return '哥';
         if(relation[0] == '爸' && relation[1] == '儿')
             return '孙';
         if(relation[0] == '儿' && relation[1] == '爸')

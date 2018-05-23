@@ -1,7 +1,6 @@
 package com.QG_relation.model;
 
 import com.QG_relation.util.Key;
-import com.QG_relation.util.inputCheck;
 import com.QG_relation.util.tellRelation;
 
 import java.io.BufferedReader;
@@ -9,12 +8,14 @@ import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Stack;
 
 public class Relation {
     public ArrayList<String> fathers, sons, teachers, students;
     public Map<Key, relationType> family_relationMap = new HashMap<>();
     public Map<Key, relationType> teacher_student_relationMap = new HashMap<>();
     public Map<Key, relationType> classmates_relation = new HashMap<>();
+    public Stack<Character> relationRecorder = new Stack<>();
     //    public Map<String, HashMap<String,Integer>> father_son_relationMap = new HashMap<>();
     //    private HashMap<String,Integer> tmpMap = new HashMap<>();
     public enum relationType{
@@ -48,8 +49,6 @@ public class Relation {
             people = new String[2];
             int is = buffer.indexOf('是'), first_of = buffer.indexOf('的'), second_of = buffer.lastIndexOf('的');
 
-            /*current is to record the current location
-            crrPeople(current people)is for people[], r is for relation[], k is for keyword*/
             if(is < first_of){
                 people[0] = buffer.substring(0, is);
                 people[1] = buffer.substring(is+1, first_of);
@@ -204,6 +203,7 @@ public class Relation {
     }
 
 
+    //get info from people.txt
     public ArrayList<String> getInfo() {
         try{
             BufferedReader input = new BufferedReader(new FileReader("people.txt"));
@@ -281,7 +281,7 @@ public class Relation {
         relationType type;
         type = family_relationMap.get(new Key(people[0], people[1]));
         if(type == null)
-            type = findFamilyRelationBehind(people);
+            type = searchFamilyRelationImplied(people);
         if(type == null)
             type = relationType.none;
         return type;
@@ -291,7 +291,7 @@ public class Relation {
         relationType type;
         type = teacher_student_relationMap.get(new Key(people[0], people[1]));
         if(type == null)
-            type = findSchoolRelationBehind(people);
+            type = searchSchoolRelationImplied(people);
         if(type == null)
             type = relationType.none;
 
@@ -299,13 +299,13 @@ public class Relation {
     }
 
     // implying relation in the family_map
-    private relationType findFamilyRelationBehind(String[] people) {
+    private relationType searchFamilyRelationImplied(String[] people) {
         relationType type;
         // find if they are brothers
         // have to use type = map.get(), because only type can recognize relationType
         if(fathers.contains(people[0]) && fathers.contains(people[1]) ||
-                (sons.contains(people[0]) && sons.contains(people[1])))
-            for (String father : fathers) {
+                (sons.contains(people[0]) && sons.contains(people[1]))){
+            for (String father : fathers)
                 if ((type = family_relationMap.get(new Key(people[0], father))) ==
                         (type = family_relationMap.get(new Key(people[1], father))) && type != null)
                     return relationType.brother;
@@ -353,7 +353,7 @@ public class Relation {
         return relationType.none;
     }
     // implying relation in the teachers_students_Map
-    private relationType findSchoolRelationBehind(String[] people) {
+    private relationType searchSchoolRelationImplied(String[] people) {
         relationType type;
         String statement = "两人不存在同学/师生关系";
         if(students.contains(people[0]) && students.contains(people[1]))

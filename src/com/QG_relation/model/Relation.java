@@ -1,6 +1,7 @@
 package com.QG_relation.model;
 
 import com.QG_relation.util.Key;
+import com.QG_relation.util.inputCheck;
 import com.QG_relation.util.tellRelation;
 
 import java.io.BufferedReader;
@@ -11,7 +12,7 @@ import java.util.Map;
 import java.util.Stack;
 
 public class Relation {
-    public ArrayList<String> fathers, sons, teachers, students;
+    public ArrayList<String> fathers, sons, teachers, students, WarningMessage;
     public Map<Key, relationType> family_relationMap = new HashMap<>();
     public Map<Key, relationType> teacher_student_relationMap = new HashMap<>();
     public Map<Key, relationType> classmates_relation = new HashMap<>();
@@ -39,14 +40,18 @@ public class Relation {
         sons = new ArrayList<String>();
         teachers = new ArrayList<String>();
         students = new ArrayList<String>();
+        WarningMessage = new ArrayList<String>();
         char[] relation;
         ArrayList<Character> keyword;
         String[] people;
         for (String buffer : Info) {
+            int row = 0;
+            row++;
             keyword = new ArrayList<>();
             relation = new char[2];
             people = new String[2];
-            int is = buffer.indexOf('是'), first_of = buffer.indexOf('的'), second_of = buffer.lastIndexOf('的');
+            int is = buffer.indexOf('是'), first_of =
+                    buffer.indexOf('的'), second_of = buffer.lastIndexOf('的');
 
             if(is < first_of){
                 people[0] = buffer.substring(0, is);
@@ -90,6 +95,19 @@ public class Relation {
                 people[1] = tmp;
             }
 
+            //check info
+             inputCheck.checkResult result =
+                     inputCheck.relationCheck(people, ch_To_relationType(relation[0]),this);
+            if(result == inputCheck.checkResult.relation_crashed){
+                WarningMessage.add("relation error in row "+ row +'\n');
+                break;
+            }
+            switch (result){
+                case no_relation:break;
+                case relation_existed:
+                    WarningMessage.add("In row " + row +" the relation has already existed\n");
+                default: break;
+            }
             //build relation
             switch (relation[0]){
                 case '儿':
@@ -277,7 +295,7 @@ public class Relation {
         return relationStatements;
     }
 
-    private relationType searchFamilyRelation(String[] people){
+    public relationType searchFamilyRelation(String[] people){
         relationType type;
         char ch;
         type = family_relationMap.get(new Key(people[0], people[1]));
@@ -286,7 +304,7 @@ public class Relation {
         return type;
     }
 
-    private relationType searchSchoolRelation(String[] people){
+    public relationType searchSchoolRelation(String[] people){
         relationType type;
         type = teacher_student_relationMap.get(new Key(people[0], people[1]));
         if(type == null)

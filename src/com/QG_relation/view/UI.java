@@ -72,6 +72,8 @@ public class UI extends JFrame{
         outputBox.setLineWrap(true);
         outputBox.setWrapStyleWord(true);
         outputBox.setText("Input two name, use [space] to separate them\n");
+        if(relation.WarningMessage.size()!=0)
+            outputBox.append(relation.WarningMessage.toString());
 
         JScrollPane scrollPane = new JScrollPane(outputBox);
         MainPanel.add(scrollPane);

@@ -15,7 +15,7 @@ public class inputCheck {
         type1 = _relation.searchFamilyRelation(people);
         if(type1 == relation)
             return checkResult.relation_existed;
-        type2 = _relation.searchFamilyRelation(people);
+        type2 = _relation.searchSchoolRelation(people);
         if(type1 == Relation.relationType.none && type2 == Relation.relationType.none)
             return checkResult.no_relation;
         if(type2 == relation)
